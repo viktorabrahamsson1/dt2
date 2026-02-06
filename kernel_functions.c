@@ -44,11 +44,7 @@ exception create_task(void (*task_body)(), uint deadline)
   new_tcb->StackSeg[STACK_SIZE - 3] = (unsigned int)task_body;
   new_tcb->SP = &(new_tcb->StackSeg[STACK_SIZE - 9]);
 
-  // after the mandatory initialization you can implement the rest of the
-  // suggested pseudocode
-
-  // Create a new list node
-  listobj *pNewNode = create_listobj(new_tcb);
+    listobj *pNewNode = create_listobj(new_tcb);
 
   // Check if list node allocation failed
   if (pNewNode == NULL)

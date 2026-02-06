@@ -46,7 +46,7 @@ listobj *extract(list *li, listobj *node)
   }
   else if (li->pTail == NULL)
   {
-    li->pTail = li->pHead; // defensivt, men ofta onödigt
+    li->pTail = li->pHead;
   }
 
   node->pPrevious = NULL;
@@ -54,6 +54,7 @@ listobj *extract(list *li, listobj *node)
   return node;
 }
 
+// insert en node sist i listan aka tail
 void insert_tail(list *li, listobj *node)
 {
 
@@ -78,6 +79,7 @@ void insert_tail(list *li, listobj *node)
   }
 }
 
+// inserterar en node baserat på dess deadline (låga deadline först i listan)
 void insert_sorted(list *li, listobj *node)
 {
 
@@ -100,10 +102,17 @@ void insert_sorted(list *li, listobj *node)
   {
     if (node->pTask->Deadline <= current->pTask->Deadline)
     {
-      listobj *temp = current->pPrevious;
-      current->pPrevious = node;
-      node->pPrevious = temp;
       node->pNext = current;
+      node->pPrevious = current->pPrevious;
+      if (node->pPrevious == NULL)
+      {
+        li->pHead = node;
+      }
+      else
+      {
+        current->pPrevious->pNext = node;
+      }
+      current->pPrevious = node;
       return;
     }
     current = current->pNext;
