@@ -98,6 +98,7 @@ void insert_sorted(list *li, listobj *node)
   }
 
   listobj *current = li->pHead;
+  // leta efter vart noden ska insertas
   while (current != NULL)
   {
     if (node->pTask->Deadline <= current->pTask->Deadline)
@@ -118,6 +119,7 @@ void insert_sorted(list *li, listobj *node)
     current = current->pNext;
   }
 
+  // Om noden är tail
   li->pTail->pNext = node;
   node->pPrevious = li->pTail;
   node->pNext = NULL;

@@ -2,6 +2,7 @@
 #include "globals.h"
 #include "linked_list.h"
 
+// Initiera kernel och initiiera listor
 exception init_kernel(void)
 {
   Ticks = 0;
@@ -9,6 +10,7 @@ exception init_kernel(void)
   TimerList = init_list();
   WaitingList = init_list();
 
+  // kolla om listorna har en adress
   if (!ReadyList || !WaitingList || !TimerList)
   {
     return FAIL;
@@ -17,6 +19,7 @@ exception init_kernel(void)
   KernelMode = INIT;
   exception idle_status = create_task(idle_task, UINT_MAX);
 
+  // kolla om idle task failar
   if (!idle_status)
   {
     return FAIL;
@@ -30,7 +33,7 @@ exception create_task(void (*task_body)(), uint deadline)
   TCB *new_tcb;
   new_tcb = (TCB *)calloc(1, sizeof(TCB));
 
-  /* you must check if calloc was successful or not! */
+  // Kolla om calloc retunerade en address
   if (new_tcb == NULL)
   {
     return FAIL;
@@ -44,7 +47,8 @@ exception create_task(void (*task_body)(), uint deadline)
   new_tcb->StackSeg[STACK_SIZE - 3] = (unsigned int)task_body;
   new_tcb->SP = &(new_tcb->StackSeg[STACK_SIZE - 9]);
 
-    listobj *pNewNode = create_listobj(new_tcb);
+  // skapa ett list objekt
+  listobj *pNewNode = create_listobj(new_tcb);
 
   // Check if list node allocation failed
   if (pNewNode == NULL)
@@ -56,7 +60,7 @@ exception create_task(void (*task_body)(), uint deadline)
   // Check if the kernel is currently in "start-up" mode.
   if (KernelMode == INIT)
   {
-    // just add the task to the ReadyList
+    // lägger till nya tasken till ReadyList
     insert_sorted(ReadyList, pNewNode);
   }
   // KernelMode == RUNNING
