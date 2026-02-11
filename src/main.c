@@ -8,11 +8,11 @@
     And of course, init_kernel() and run() also need to work correctly
  */
 
-#include "system_sam3x.h"
-#include "at91sam3x8.h"
-#include "kernel_functions.h"
+#include "../drivers/system_sam3x.h"
+#include "../drivers/at91sam3x8.h"
+#include "../includes/kernel_functions.h"
 // may be you need to include your own library files here!!
-#include "globals.h"
+#include "../includes/globals.h"
 
 unsigned int g0 = 0,
              g1 = 0, g2 = 0, g3 = 1; /* gate flags for various stages of unit test */
