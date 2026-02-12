@@ -3,7 +3,7 @@
 
 #include "kernel_functions.h"
 
-extern int Ticks;
+extern volatile uint Ticks;
 extern int KernelMode;
 extern TCB *PreviousTask, *NextTask;
 extern list *ReadyList, *WaitingList, *TimerList;
