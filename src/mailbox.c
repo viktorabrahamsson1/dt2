@@ -56,12 +56,16 @@ exception send_wait(mailbox *mBox, void *pData)
     if (current->Status == RECEIVER)
     {
       memcpy(current->pData, pData, mBox->nDataSize);
-      mBox->nBlockedMsg--;
+      current->Status = OK;
 
       extract(WaitingList, current->pBlock);
+      extract(TimerList, current->pBlock);
+      current->pBlock->pMessage = NULL;
       insert_sorted(ReadyList, current->pBlock);
 
+      mBox->nBlockedMsg--;
       unlink_msg(mBox, current);
+      mBox->nMessages--;
       free(current);
 
       isr_on();
@@ -86,9 +90,15 @@ exception send_wait(mailbox *mBox, void *pData)
 
   mBox->nBlockedMsg++;
   push_tail(mBox, sender_message);
+  mBox->nMessages++;
 
+  // Blockera nuvarande running task
   extract(ReadyList, current_running_task);
+  // Sätt den nuvarande running task i waitinglist
   insert_sorted(WaitingList, current_running_task);
+  // Sätt den nuvarande running task också i timerlist
+  current_running_task->pMessage = sender_message;
+  insert_sorted(TimerList, current_running_task);
 
   isr_on();
   SwitchContext();
@@ -116,9 +126,13 @@ exception recive_wait(mailbox *mBox, void *pData)
       mBox->nBlockedMsg--;
 
       extract(WaitingList, current->pBlock);
+      extract(TimerList, current->pBlock);
+      current->pBlock->pMessage = NULL;
+
       insert_sorted(ReadyList, current->pBlock);
 
       unlink_msg(mBox, current);
+      mBox->nMessages--;
       free(current);
 
       isr_on();
@@ -144,14 +158,83 @@ exception recive_wait(mailbox *mBox, void *pData)
 
   mBox->nBlockedMsg++;
   push_tail(mBox, reciver_message);
+  mBox->nMessages++;
 
+  // Blockera current running task genom att ta bort den ur ready list och sätta in den i waiting list
   extract(ReadyList, current_running_task);
   insert_sorted(WaitingList, current_running_task);
+
+  // Sätt också tasken i timerlist
+  current_running_task->pMessage = reciver_message;
+  insert_sorted(TimerList, current_running_task);
 
   isr_on();
   SwitchContext();
 
   return reciver_message->Status;
+}
+
+exception send_no_wait(mailbox *mBox, void *pData)
+{
+  if (!mBox || !pData)
+    return FAIL;
+
+  isr_off();
+
+  // Fall 1: det finns en reciver
+  msg *current = mBox->pHead;
+  while (current != NULL)
+  {
+
+    if (current->Status == RECEIVER)
+    {
+      memcpy(current->pData, pData, mBox->nDataSize);
+      current->Status = OK;
+
+      extract(WaitingList, current->pBlock);
+      extract(TimerList, current->pBlock);
+      current->pBlock->pMessage = NULL;
+      insert_sorted(ReadyList, current->pBlock);
+
+      mBox->nBlockedMsg--;
+      unlink_msg(mBox, current);
+      mBox->nMessages--;
+      free(current);
+
+      isr_on();
+
+      SwitchContext();
+      return OK;
+    }
+
+    current = current->pNext;
+  }
+
+  // Fall 2: ingen reciver finns ingen blockning: retunera FAIL
+
+  msg *new_msg = calloc(1, sizeof(msg));
+  if (mBox->nMessages == mBox->nMaxMessages)
+  {
+    if (mBox->pHead == NULL)
+    {
+      mBox->pHead = new_msg;
+      mBox->pTail = new_msg;
+    }
+    else
+    {
+      new_msg->pNext = mBox->pHead->pNext;
+      mBox->pHead->pNext->pPrevious = new_msg;
+      mBox->pHead = new_msg;
+      new_msg->pPrevious = NULL;
+    }
+  }
+
+  isr_on();
+  return FAIL;
+}
+
+int receive_no_wait(mailbox *mBox, void *pData)
+{
 }
 
 exception wait(uint nTicks)
