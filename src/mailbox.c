@@ -213,6 +213,12 @@ exception send_no_wait(mailbox *mBox, void *pData)
   // Fall 2: ingen reciver finns ingen blockning: retunera FAIL
 
   msg *new_msg = calloc(1, sizeof(msg));
+
+  if (!new_msg)
+    return FAIL;
+
+  memcpy(new_msg->pData, pData, mBox->nDataSize);
+
   if (mBox->nMessages == mBox->nMaxMessages)
   {
     if (mBox->pHead == NULL)
@@ -228,9 +234,13 @@ exception send_no_wait(mailbox *mBox, void *pData)
       new_msg->pPrevious = NULL;
     }
   }
+  else
+  {
+    push_tail(mBox, new_msg);
+  }
 
   isr_on();
-  return FAIL;
+  return OK;
 }
 
 int receive_no_wait(mailbox *mBox, void *pData)
@@ -239,11 +249,14 @@ int receive_no_wait(mailbox *mBox, void *pData)
 
 exception wait(uint nTicks)
 {
-  uint start = Ticks;
-  while ((Ticks - start) < nTicks)
-  {
-    ;
-  }
+  isr_off();
+  listobj *current_running_task = ReadyList->pHead;
+  current_running_task->nTCnt = Ticks + nTicks;
+  extract(ReadyList, current_running_task);
+  insert_sorted(TimerList, current_running_task);
+
+  isr_on();
+  SwitchContext();
 }
 
 void set_ticks(uint nTicks)
@@ -288,10 +301,12 @@ static void push_tail(mailbox *m, msg *x)
     m->pHead = x;
     m->pTail = x;
   }
-
-  x->pPrevious = m->pTail;
-  m->pTail->pNext = x;
-  m->pTail = x;
+  else
+  {
+    x->pPrevious = m->pTail;
+    m->pTail->pNext = x;
+    m->pTail = x;
+  }
 }
 
 static msg *pop_head(mailbox *m)
