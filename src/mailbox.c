@@ -58,6 +58,8 @@ exception send_wait(mailbox *mBox, void *pData)
       memcpy(current->pData, pData, mBox->nDataSize);
       current->Status = OK;
 
+      PreviousTask = ReadyList->pHead->pTask;
+
       extract(WaitingList, current->pBlock);
       extract(TimerList, current->pBlock);
       current->pBlock->pMessage = NULL;
@@ -69,7 +71,7 @@ exception send_wait(mailbox *mBox, void *pData)
       free(current);
 
       isr_on();
-
+      NextTask = ReadyList->pHead->pTask;
       SwitchContext();
       return OK;
     }
@@ -92,6 +94,7 @@ exception send_wait(mailbox *mBox, void *pData)
   push_tail(mBox, sender_message);
   mBox->nMessages++;
 
+  PreviousTask = ReadyList->pHead->pTask;
   // Blockera nuvarande running task
   extract(ReadyList, current_running_task);
   // Sätt den nuvarande running task i waitinglist
@@ -99,9 +102,20 @@ exception send_wait(mailbox *mBox, void *pData)
   // Sätt den nuvarande running task också i timerlist
   current_running_task->pMessage = sender_message;
   insert_sorted(TimerList, current_running_task);
-
+  NextTask = ReadyList->pHead->pTask;
   isr_on();
   SwitchContext();
+
+  if (sender_message->Status == DEADLINE_REACHED)
+  {
+    isr_off();
+    unlink_msg(mBox, sender_message);
+    mBox->nMessages--;
+    mBox->nBlockedMsg--;
+    free(sender_message);
+    isr_on();
+    return DEADLINE_REACHED;
+  }
 
   return sender_message->Status;
 }
@@ -125,18 +139,26 @@ exception recive_wait(mailbox *mBox, void *pData)
       memcpy(pData, current->pData, mBox->nDataSize);
       mBox->nBlockedMsg--;
 
-      extract(WaitingList, current->pBlock);
-      extract(TimerList, current->pBlock);
-      current->pBlock->pMessage = NULL;
+      PreviousTask = ReadyList->pHead->pTask;
 
-      insert_sorted(ReadyList, current->pBlock);
+      if (current->pBlock != NULL)
+      {
+        extract(WaitingList, current->pBlock);
+        extract(TimerList, current->pBlock);
+        current->pBlock->pMessage = NULL;
+        insert_sorted(ReadyList, current->pBlock);
+      }
+      else
+      {
+        free(current->pData);
+      }
 
       unlink_msg(mBox, current);
       mBox->nMessages--;
       free(current);
 
+      NextTask = ReadyList->pHead->pTask;
       isr_on();
-
       SwitchContext();
       return OK;
     }
@@ -161,6 +183,7 @@ exception recive_wait(mailbox *mBox, void *pData)
   mBox->nMessages++;
 
   // Blockera current running task genom att ta bort den ur ready list och sätta in den i waiting list
+  PreviousTask = ReadyList->pHead->pTask;
   extract(ReadyList, current_running_task);
   insert_sorted(WaitingList, current_running_task);
 
@@ -170,6 +193,17 @@ exception recive_wait(mailbox *mBox, void *pData)
 
   isr_on();
   SwitchContext();
+
+  if (reciver_message->Status == DEADLINE_REACHED)
+  {
+    isr_off();
+    unlink_msg(mBox, reciver_message);
+    mBox->nMessages--;
+    mBox->nBlockedMsg--;
+    free(reciver_message);
+    isr_on();
+    return DEADLINE_REACHED;
+  }
 
   return reciver_message->Status;
 }
@@ -191,6 +225,8 @@ exception send_no_wait(mailbox *mBox, void *pData)
       memcpy(current->pData, pData, mBox->nDataSize);
       current->Status = OK;
 
+      PreviousTask = ReadyList->pHead->pTask;
+
       extract(WaitingList, current->pBlock);
       extract(TimerList, current->pBlock);
       current->pBlock->pMessage = NULL;
@@ -201,8 +237,8 @@ exception send_no_wait(mailbox *mBox, void *pData)
       mBox->nMessages--;
       free(current);
 
+      NextTask = ReadyList->pHead->pTask;
       isr_on();
-
       SwitchContext();
       return OK;
     }
@@ -213,31 +249,21 @@ exception send_no_wait(mailbox *mBox, void *pData)
   // Fall 2: ingen reciver finns ingen blockning: retunera FAIL
 
   msg *new_msg = calloc(1, sizeof(msg));
-
   if (!new_msg)
     return FAIL;
 
+  new_msg->pData = calloc(1, mBox->nDataSize);
   memcpy(new_msg->pData, pData, mBox->nDataSize);
 
   if (mBox->nMessages == mBox->nMaxMessages)
   {
-    if (mBox->pHead == NULL)
-    {
-      mBox->pHead = new_msg;
-      mBox->pTail = new_msg;
-    }
-    else
-    {
-      new_msg->pNext = mBox->pHead->pNext;
-      mBox->pHead->pNext->pPrevious = new_msg;
-      mBox->pHead = new_msg;
-      new_msg->pPrevious = NULL;
-    }
+    msg *oldest = pop_head(mBox);
+    mBox->nMessages--;
+    free(oldest->pData);
+    free(oldest);
   }
-  else
-  {
-    push_tail(mBox, new_msg);
-  }
+  push_tail(mBox, new_msg);
+  mBox->nMessages++;
 
   isr_on();
   return OK;
@@ -245,6 +271,48 @@ exception send_no_wait(mailbox *mBox, void *pData)
 
 int receive_no_wait(mailbox *mBox, void *pData)
 {
+  if (!mBox || !pData)
+    return FAIL;
+
+  isr_off();
+
+  msg *current = mBox->pHead;
+  while (current != NULL)
+  {
+    if (current->Status == SENDER)
+    {
+      memcpy(pData, current->pData, mBox->nDataSize);
+
+      if (current->pBlock != NULL) // send_wait typ
+      {
+        PreviousTask = ReadyList->pHead->pTask;
+        mBox->nBlockedMsg--;
+        extract(WaitingList, current->pBlock);
+        extract(TimerList, current->pBlock);
+        current->pBlock->pMessage = NULL;
+        insert_sorted(ReadyList, current->pBlock);
+        NextTask = ReadyList->pHead->pTask;
+        unlink_msg(mBox, current);
+        mBox->nMessages--;
+        free(current);
+        isr_on();
+        SwitchContext();
+      }
+      else // send_no_wait typ
+      {
+        free(current->pData);
+        unlink_msg(mBox, current);
+        mBox->nMessages--;
+        free(current);
+        isr_on();
+      }
+      return OK;
+    }
+    current = current->pNext;
+  }
+
+  isr_on();
+  return FAIL;
 }
 
 exception wait(uint nTicks)
@@ -252,11 +320,21 @@ exception wait(uint nTicks)
   isr_off();
   listobj *current_running_task = ReadyList->pHead;
   current_running_task->nTCnt = Ticks + nTicks;
+
+  PreviousTask = ReadyList->pHead->pTask;
   extract(ReadyList, current_running_task);
   insert_sorted(TimerList, current_running_task);
+  NextTask = ReadyList->pHead->pTask;
 
   isr_on();
   SwitchContext();
+
+  // Efter uppvakning, kolla hur tasken väcktes:
+  if (Ticks >= current_running_task->pTask->Deadline)
+  {
+    return DEADLINE_REACHED;
+  }
+  return OK;
 }
 
 void set_ticks(uint nTicks)
@@ -278,10 +356,56 @@ uint deadline(void)
 void set_deadline(uint deadline)
 {
   isr_off();
+
+  ReadyList->pHead->pTask->Deadline = deadline;
+
+  PreviousTask = ReadyList->pHead->pTask;
+
+  // Extrahera och sätt in igen för att reschedula
+  listobj *current = extract(ReadyList, ReadyList->pHead);
+  insert_sorted(ReadyList, current);
+
+  NextTask = ReadyList->pHead->pTask;
+
+  isr_on();
+  SwitchContext();
 }
 
 void TimerInt(void)
 {
+  Ticks++;
+
+  // Kolla TimerList
+  listobj *current = TimerList->pHead;
+  while (current != NULL)
+  {
+    listobj *next = current->pNext;
+    if (Ticks >= current->nTCnt || Ticks >= current->pTask->Deadline)
+    {
+      extract(TimerList, current);
+      insert_sorted(ReadyList, current);
+    }
+    current = next;
+  }
+
+  // Kolla WaitingList
+  listobj *current_wait = WaitingList->pHead;
+  while (current_wait != NULL)
+  {
+    listobj *next = current_wait->pNext;
+    if (current_wait->pTask->Deadline <= Ticks)
+    {
+      // Städa upp mailbox-meddelandet
+      if (current_wait->pMessage != NULL)
+      {
+        current_wait->pMessage->Status = DEADLINE_REACHED;
+        current_wait->pMessage->pBlock = NULL;
+      }
+      extract(WaitingList, current_wait);
+      insert_sorted(ReadyList, current_wait);
+    }
+    current_wait = next;
+  }
 }
 
 ///////////////////
