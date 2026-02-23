@@ -95,13 +95,13 @@ exception send_wait(mailbox *mBox, void *pData)
   mBox->nMessages++;
 
   PreviousTask = ReadyList->pHead->pTask;
+  current_running_task->pMessage = sender_message;
+
   // Blockera nuvarande running task
   extract(ReadyList, current_running_task);
   // Sätt den nuvarande running task i waitinglist
   insert_sorted(WaitingList, current_running_task);
   // Sätt den nuvarande running task också i timerlist
-  current_running_task->pMessage = sender_message;
-  insert_sorted(TimerList, current_running_task);
   NextTask = ReadyList->pHead->pTask;
   isr_on();
   SwitchContext();
@@ -184,12 +184,12 @@ exception recive_wait(mailbox *mBox, void *pData)
 
   // Blockera current running task genom att ta bort den ur ready list och sätta in den i waiting list
   PreviousTask = ReadyList->pHead->pTask;
+  current_running_task->pMessage = reciver_message;
+
   extract(ReadyList, current_running_task);
   insert_sorted(WaitingList, current_running_task);
 
   // Sätt också tasken i timerlist
-  current_running_task->pMessage = reciver_message;
-  insert_sorted(TimerList, current_running_task);
 
   isr_on();
   SwitchContext();
@@ -251,7 +251,8 @@ exception send_no_wait(mailbox *mBox, void *pData)
   msg *new_msg = calloc(1, sizeof(msg));
   if (!new_msg)
     return FAIL;
-
+  new_msg->Status = SENDER;
+  new_msg->pBlock = NULL;
   new_msg->pData = calloc(1, mBox->nDataSize);
   memcpy(new_msg->pData, pData, mBox->nDataSize);
 
@@ -289,6 +290,7 @@ int receive_no_wait(mailbox *mBox, void *pData)
         mBox->nBlockedMsg--;
         extract(WaitingList, current->pBlock);
         extract(TimerList, current->pBlock);
+
         current->pBlock->pMessage = NULL;
         insert_sorted(ReadyList, current->pBlock);
         NextTask = ReadyList->pHead->pTask;
@@ -395,12 +397,12 @@ void TimerInt(void)
     listobj *next = current_wait->pNext;
     if (current_wait->pTask->Deadline <= Ticks)
     {
-      // Städa upp mailbox-meddelandet
       if (current_wait->pMessage != NULL)
       {
         current_wait->pMessage->Status = DEADLINE_REACHED;
         current_wait->pMessage->pBlock = NULL;
       }
+      current_wait->nTCnt = DEADLINE_REACHED; // LÄGG TILL, signal även om pMessage är NULL
       extract(WaitingList, current_wait);
       insert_sorted(ReadyList, current_wait);
     }
@@ -480,4 +482,9 @@ static void unlink_msg(mailbox *m, msg *x)
 
   x->pPrevious = NULL;
   x->pNext = NULL;
+}
+
+void SysTick_Handler(void)
+{
+  TimerInt();
 }
