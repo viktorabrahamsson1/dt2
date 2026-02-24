@@ -47,7 +47,7 @@ exception send_wait(mailbox *mBox, void *pData)
 
   listobj *current_running_task = ReadyList->pHead;
 
-  // Fall 1: det finns en msg objekt med status RECIVER i mailboxen
+  // Loopa igenom mbox för att hita en med status RECIVER
   msg *current = mBox->pHead;
   while (current != NULL)
   {
@@ -58,10 +58,13 @@ exception send_wait(mailbox *mBox, void *pData)
     current = current->pNext;
   }
 
+  // Fall 1: det finns en msg objekt med status RECIVER i mailboxen
   if (current && current->Status == RECEIVER)
   {
+    // kopiera in minnet från sender till reciver
     memcpy(current->pData, pData, mBox->nDataSize);
 
+    // ta bort reciver msg ur mailbox
     unlink_msg(mBox, current);
     mBox->nBlockedMsg--;
     mBox->nMessages--;
