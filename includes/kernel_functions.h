@@ -82,6 +82,12 @@ typedef struct _list
         listobj *pTail;
 } list;
 
+// GLOBALA VARIABLAR
+extern volatile uint Ticks;
+extern int KernelMode;
+extern TCB *PreviousTask, *NextTask;
+extern list *ReadyList, *WaitingList, *TimerList;
+
 // Function prototypes
 
 // Task administration
