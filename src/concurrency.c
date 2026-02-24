@@ -1,5 +1,6 @@
 
 #include "../includes/concurrency.h"
+#include "../includes/kernel_functions.h"
 
 uint task_1_deadline = 1000;
 uint task_2_deadline = 1000;
