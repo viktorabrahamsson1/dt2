@@ -66,7 +66,7 @@ exception send_wait(mailbox *mBox, void *pData)
     mBox->nBlockedMsg--;
     mBox->nMessages--;
 
-    PreviousTask = current_running_task;
+    PreviousTask = current_running_task->pTask;
 
     extract(WaitingList, current->pBlock);
     current->pBlock->pMessage = NULL;
@@ -125,7 +125,7 @@ exception send_wait(mailbox *mBox, void *pData)
   return OK;
 }
 
-exception recive_wait(mailbox *mBox, void *pData)
+exception receive_wait(mailbox *mBox, void *pData)
 {
   if (!mBox || !pData)
     return FAIL;
@@ -304,7 +304,7 @@ int receive_no_wait(mailbox *mBox, void *pData)
     {
       memcpy(pData, current->pData, mBox->nDataSize);
 
-      if (current->pBlock != NULL) // send_wait typ
+      if (current->pBlock != NULL)
       {
         PreviousTask = ReadyList->pHead->pTask;
         mBox->nBlockedMsg--;
@@ -407,12 +407,13 @@ void TimerInt(void)
     {
       extract(TimerList, current);
       insert_sorted(ReadyList, current);
+      NextTask = ReadyList->pHead->pTask;
+      free(current);
     }
     current = next;
   }
 
   // Kolla WaitingList
-  listobj *current_wait = WaitingList->pHead;
   listobj *current_wait = WaitingList->pHead;
   while (current_wait != NULL)
   {
@@ -422,6 +423,7 @@ void TimerInt(void)
       // Bara flytta tasken - den rensar själv sitt meddelande
       extract(WaitingList, current_wait);
       insert_sorted(ReadyList, current_wait);
+      NextTask = ReadyList->pHead->pTask;
     }
     current_wait = next;
   }
@@ -499,9 +501,4 @@ static void unlink_msg(mailbox *m, msg *x)
 
   x->pPrevious = NULL;
   x->pNext = NULL;
-}
-
-void SysTick_Handler(void)
-{
-  TimerInt();
 }
