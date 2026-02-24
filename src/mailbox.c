@@ -55,69 +55,63 @@ exception send_wait(mailbox *mBox, void *pData)
   {
     if (current->Status == RECEIVER)
     {
-      memcpy(current->pData, pData, mBox->nDataSize);
-      current->Status = OK;
-
-      PreviousTask = ReadyList->pHead->pTask;
-
-      extract(WaitingList, current->pBlock);
-      extract(TimerList, current->pBlock);
-      current->pBlock->pMessage = NULL;
-      insert_sorted(ReadyList, current->pBlock);
-
-      mBox->nBlockedMsg--;
-      unlink_msg(mBox, current);
-      mBox->nMessages--;
-      free(current);
-
-      isr_on();
-      NextTask = ReadyList->pHead->pTask;
-      SwitchContext();
-      return OK;
+      break;
     }
     current = current->pNext;
   }
 
-  // Fall 2: det finns inte ett msg objekt med status RECIVER i mailboxen
-  msg *sender_message = calloc(1, sizeof(msg));
-  if (!sender_message)
+  if (current->Status == RECEIVER)
   {
-    isr_on();
-    return FAIL;
+    memcpy(current->pData, pData, mBox->nDataSize);
+
+    unlink_msg(mBox, current);
+    mBox->nBlockedMsg--;
+    mBox->nMessages--;
+
+    PreviousTask = current_running_task;
+
+    extract(WaitingList, current->pBlock);
+    insert_sorted(ReadyList, current->pBlock);
+    NextTask = ReadyList->pHead->pTask;
   }
+  // Fall 2: det finns inte ett msg objekt med status RECIVER i mailboxen
+  else
+  {
+    msg *sender_message = calloc(1, sizeof(msg));
 
-  sender_message->Status = SENDER;
-  sender_message->pData = pData;
-  sender_message->pBlock = current_running_task;
+    sender_message->Status = SENDER;
+    sender_message->pData = pData;
+    sender_message->pBlock = current_running_task;
 
-  mBox->nBlockedMsg++;
-  push_tail(mBox, sender_message);
-  mBox->nMessages++;
+    push_tail(mBox, sender_message);
+    mBox->nMessages++;
+    mBox->nBlockedMsg++;
 
-  PreviousTask = ReadyList->pHead->pTask;
-  current_running_task->pMessage = sender_message;
+    PreviousTask = current_running_task;
+    current_running_task->pMessage = sender_message;
 
-  // Blockera nuvarande running task
-  extract(ReadyList, current_running_task);
-  // Sätt den nuvarande running task i waitinglist
-  insert_sorted(WaitingList, current_running_task);
-  // Sätt den nuvarande running task också i timerlist
-  NextTask = ReadyList->pHead->pTask;
-  isr_on();
+    extract(ReadyList, current_running_task);
+    insert_sorted(WaitingList, current_running_task);
+    // Sätt den nuvarande running task också i timerlist
+    NextTask = ReadyList->pHead->pTask;
+  }
   SwitchContext();
 
-  if (sender_message->Status == DEADLINE_REACHED)
+  if (Ticks >= current_running_task->pTask->Deadline)
   {
     isr_off();
-    unlink_msg(mBox, sender_message);
-    mBox->nMessages--;
-    mBox->nBlockedMsg--;
-    free(sender_message);
+
+    if (current_running_task->pMessage)
+    {
+      free(current_running_task->pMessage->pData);
+      free(current_running_task->pMessage);
+      current_running_task->pMessage = NULL;
+    }
     isr_on();
     return DEADLINE_REACHED;
   }
 
-  return sender_message->Status;
+  return OK;
 }
 
 exception recive_wait(mailbox *mBox, void *pData)
@@ -133,79 +127,68 @@ exception recive_wait(mailbox *mBox, void *pData)
   msg *current = mBox->pHead;
   while (current != NULL)
   {
-
     if (current->Status == SENDER)
     {
-      memcpy(pData, current->pData, mBox->nDataSize);
-      mBox->nBlockedMsg--;
-
-      PreviousTask = ReadyList->pHead->pTask;
-
-      if (current->pBlock != NULL)
-      {
-        extract(WaitingList, current->pBlock);
-        extract(TimerList, current->pBlock);
-        current->pBlock->pMessage = NULL;
-        insert_sorted(ReadyList, current->pBlock);
-      }
-      else
-      {
-        free(current->pData);
-      }
-
-      unlink_msg(mBox, current);
-      mBox->nMessages--;
-      free(current);
-
-      NextTask = ReadyList->pHead->pTask;
-      isr_on();
-      SwitchContext();
-      return OK;
+      break;
     }
-
-    current = current->pNext;
   }
 
-  // Fall 2: det finns inte ett msg objekt med status SENDER i mailboxen
-  msg *reciver_message = calloc(1, sizeof(msg));
-  if (!reciver_message)
+  if (current->Status == SENDER)
   {
-    isr_on();
-    return FAIL;
+    memcpy(pData, current->pData, mBox->nDataSize);
+    unlink_msg(mBox, current);
+    mBox->nBlockedMsg--;
+    mBox->nMessages--;
+
+    if (current->pBlock)
+    {
+      PreviousTask = ReadyList->pHead->pTask;
+      extract(WaitingList, current->pBlock);
+      insert_sorted(ReadyList, current->pBlock);
+      NextTask = ReadyList->pHead->pTask;
+    }
+    else
+    {
+      free(current->pBlock->pMessage->pData);
+      free(current->pBlock->pMessage);
+      current->pBlock->pMessage = NULL;
+    }
+  }
+  // Fall 2: det finns inte ett msg objekt med status SENDER i mailboxen
+  else
+  {
+    msg *reciver_message = calloc(1, sizeof(msg));
+    reciver_message->Status = RECEIVER;
+    reciver_message->pData = pData;
+    reciver_message->pBlock = current_running_task;
+
+    push_tail(mBox, reciver_message);
+    mBox->nBlockedMsg++;
+    mBox->nMessages++;
+
+    PreviousTask = ReadyList->pHead->pTask;
+
+    current_running_task->pMessage = reciver_message;
+
+    extract(ReadyList, current_running_task);
+    insert_sorted(WaitingList, current_running_task);
   }
 
-  reciver_message->Status = RECEIVER;
-  reciver_message->pData = pData;
-  reciver_message->pBlock = current_running_task;
-
-  mBox->nBlockedMsg++;
-  push_tail(mBox, reciver_message);
-  mBox->nMessages++;
-
-  // Blockera current running task genom att ta bort den ur ready list och sätta in den i waiting list
-  PreviousTask = ReadyList->pHead->pTask;
-  current_running_task->pMessage = reciver_message;
-
-  extract(ReadyList, current_running_task);
-  insert_sorted(WaitingList, current_running_task);
-
-  // Sätt också tasken i timerlist
-
-  isr_on();
   SwitchContext();
 
-  if (reciver_message->Status == DEADLINE_REACHED)
+  if (Ticks >= current_running_task->pTask->Deadline)
   {
     isr_off();
-    unlink_msg(mBox, reciver_message);
-    mBox->nMessages--;
-    mBox->nBlockedMsg--;
-    free(reciver_message);
+    if (current_running_task->pMessage)
+    {
+      free(current_running_task->pMessage->pData);
+      free(current_running_task->pMessage);
+      current_running_task->pMessage = NULL;
+    }
     isr_on();
     return DEADLINE_REACHED;
   }
-
-  return reciver_message->Status;
+  return OK;
 }
 
 exception send_no_wait(mailbox *mBox, void *pData)
