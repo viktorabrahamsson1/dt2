@@ -505,3 +505,22 @@ static void unlink_msg(mailbox *m, msg *x)
   x->pPrevious = NULL;
   x->pNext = NULL;
 }
+
+msg *search_for_msg(mailbox *mBox)
+{
+  if (!mBox || !mBox->pHead)
+    return NULL;
+
+  msg *current = mBox->pHead;
+  while (current != NULL)
+  {
+    if (current->Status == SENDER)
+    {
+      return current;
+    }
+
+    current = current->pNext;
+  }
+
+  return NULL;
+}

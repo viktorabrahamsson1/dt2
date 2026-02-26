@@ -10,6 +10,7 @@ uint task_3_deadline = 10000;
 uint task_4_deadline = 10000;
 
 mailbox *input_events;
+bool pressed;
 
 void setup(void)
 {
@@ -112,22 +113,36 @@ void task_2(void)
     for (i = 0; i < 3; i++)
     {
       flash_led(2);
-      exception r = wait(8000);
-      set_deadline(task_2_deadline + ticks());
     }
+    exception r = wait(8000);
+    set_deadline(task_2_deadline + ticks());
   }
 }
 
 void task_3(void)
 {
+
   while (1)
   {
-    turn_on_led(3);
-    compute_primes();
-    int i;
-    for (i = 0; i < 3; i++)
+    if (search_for_msg(input_events) != NULL && pressed == 0)
     {
-      flash_led(3);
+      turn_on_led(3);
+      compute_primes();
+      int i;
+      for (i = 0; i < 3; i++)
+      {
+        flash_led(3);
+      }
+      exception r = wait(8000);
+      set_deadline(task_3_deadline + ticks());
+    }
+    else
+    {
+      int i;
+      for (i = 0; i < 3; i++)
+      {
+        flash_led(3);
+      }
       exception r = wait(8000);
       set_deadline(task_3_deadline + ticks());
     }
@@ -153,6 +168,11 @@ void task_4(void)
 
     set_deadline(task_4_deadline + ticks());
   }
+}
+
+void PIOA_Handler(void)
+{
+  uint32_t status = *AT91C_PIOA_ISR;
 }
 
 void ButtonHandler(void)

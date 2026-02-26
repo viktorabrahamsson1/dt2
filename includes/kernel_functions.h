@@ -89,6 +89,7 @@ extern TCB *PreviousTask, *NextTask;
 extern list *ReadyList, *WaitingList, *TimerList;
 
 // Function prototypes
+msg *search_for_msg(mailbox *mBox);
 
 // Task administration
 exception init_kernel(void);
