@@ -21,4 +21,6 @@ void task_2(void);
 void task_3(void);
 void task_4(void);
 
+void ButtonHandler(void);
+
 #endif

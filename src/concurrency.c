@@ -9,8 +9,13 @@ uint task_2_deadline = 10000;
 uint task_3_deadline = 10000;
 uint task_4_deadline = 10000;
 
+mailbox *input_events;
+
 void setup(void)
 {
+  input_events = calloc(1, sizeof(mailbox));
+  if (!input_events)
+    return;
   *AT91C_PMC_PCER |= (1 << 14) | (1 << 11) | (1 << 13);
 
   // FÖR LEDS
@@ -101,7 +106,8 @@ void task_2(void)
   while (1)
   {
     turn_on_led(2);
-    compute_primes();
+    bool pressed = 1;
+    exception i_ex = receive_wait(input_events, &pressed);
     int i;
     for (i = 0; i < 3; i++)
     {
@@ -149,6 +155,15 @@ void task_4(void)
   }
 }
 
+void ButtonHandler(void)
+{
+  if ((*AT91C_PIOA_ISR & (1 << 14)) == (1 << 14))
+  {
+    bool pressed = 0;
+    send_no_wait(input_events, &pressed);
+  }
+}
+
 // MAIN
 int main(void)
 {
@@ -164,12 +179,6 @@ int main(void)
   create_task(task_4, task_4_deadline);
 
   run();
-
-  AT91C_BASE_PMC->PMC_PCER = (1 << 13);
-  AT91C_BASE_PIOC->PIO_PER = (1 << 1);
-  AT91C_BASE_PIOC->PIO_OER = (1 << 1);
-  AT91C_BASE_PIOC->PIO_PPUDR = (1 << 1);
-  AT91C_BASE_PIOC->PIO_SODR = (1 << 1);
 
   while (1)
   {
