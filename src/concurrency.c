@@ -16,9 +16,7 @@ void setup(void)
   // FÖR LEDS
   *AT91C_PIOC_PER = (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4);
   *AT91C_PIOC_PPUDR = (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4);
-  ;
   *AT91C_PIOC_OER = (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4);
-  ;
 
   // FÖR KNAPPAR
   // Knapp 1:
@@ -52,6 +50,7 @@ void turn_off_led(int index)
 }
 void flash_led(int index)
 {
+  turn_on_led(index);
   for (int i = 0; i < 8000; i++)
   {
     for (int j = 0; j < 100; j++)
@@ -165,6 +164,12 @@ int main(void)
   create_task(task_4, task_4_deadline);
 
   run();
+
+  AT91C_BASE_PMC->PMC_PCER = (1 << 13);
+  AT91C_BASE_PIOC->PIO_PER = (1 << 1);
+  AT91C_BASE_PIOC->PIO_OER = (1 << 1);
+  AT91C_BASE_PIOC->PIO_PPUDR = (1 << 1);
+  AT91C_BASE_PIOC->PIO_SODR = (1 << 1);
 
   while (1)
   {
