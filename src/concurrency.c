@@ -41,14 +41,14 @@ void turn_on_led(int index)
   if (index < 1 || index > 4)
     return;
 
-  *AT91C_PIOD_SODR = (1 << index);
+  *AT91C_PIOC_SODR = (1 << index);
 }
 void turn_off_led(int index)
 {
   if (index < 1 || index > 4)
     return;
 
-  *AT91C_PIOD_CODR = (1 << index);
+  *AT91C_PIOC_CODR = (1 << index);
 }
 void flash_led(int index)
 {
@@ -135,31 +135,36 @@ void task_4(void)
   {
     // kollar om button 1 trycks
     if ((*AT91C_PIOD_PDSR & (1 << 0)) == 0)
+    {
       while ((*AT91C_PIOD_PDSR & (1 << 0)) == 0)
       {
         flash_led(4);
       }
+    }
     turn_off_led(4);
+
+    exception r = wait(10);
+    (void)r;
+
+    set_deadline(task_4_deadline + ticks());
   }
-
-  exception r = wait(10);
-  (void)r;
-
-  set_deadline(task_4_deadline + ticks());
 }
 
 // MAIN
-
 int main(void)
 {
 
   setup();
   SysTick_Config(83999);
 
+  init_kernel();
+
   create_task(task_1, task_1_deadline);
   create_task(task_2, task_2_deadline);
   create_task(task_3, task_3_deadline);
   create_task(task_4, task_4_deadline);
+
+  run();
 
   while (1)
   {

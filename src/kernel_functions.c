@@ -1,5 +1,4 @@
 #include "../includes/kernel_functions.h"
-#include "../includes/globals.h"
 #include "../includes/linked_list.h"
 
 // Initiera kernel och initiiera listor
