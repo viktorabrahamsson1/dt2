@@ -108,14 +108,14 @@ void task_2(void)
   {
     turn_on_led(2);
 
-    if (pressed == 0)
+    if (receive_wait(input_events, &pressed) == OK)
     {
       for (int i = 0; i < 3; i++)
       {
         flash_led(2);
       }
       pressed = 1;
-      exception i_ex = receive_wait(input_events, &pressed);
+      exception i_ex = send_wait(input_events, &pressed);
     }
     else
     {
@@ -132,20 +132,19 @@ void task_3(void)
 
   while (1)
   {
-    if (send_wait(input_events, &pressed) == OK)
+    if (receive_wait(input_events, &pressed) == OK)
     {
       turn_on_led(3);
       compute_primes();
     }
-
-    for (int i = 0; i < 3; i++)
-    {
-      flash_led(3);
-    }
-
-    exception r = wait(8000);
-    set_deadline(task_3_deadline + ticks());
   }
+  for (int i = 0; i < 3; i++)
+  {
+    flash_led(3);
+  }
+
+  exception r = wait(8000);
+  set_deadline(task_3_deadline + ticks());
 }
 
 void task_4(void)
@@ -172,6 +171,15 @@ void task_4(void)
 void PIOA_Handler(void)
 {
   uint32_t status = *AT91C_PIOA_ISR;
+  if ((*AT91C_PIOA_ISR & (1 << 14)) == (1 << 14))
+  {
+    pressed = 0;
+    send_no_wait(input_events, &pressed);
+  }
+  else
+  {
+    pressed = 1;
+  }
 }
 
 void ButtonHandler(void)
