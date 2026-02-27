@@ -26,19 +26,17 @@ void setup(void)
   // FÖR KNAPPAR
   // Knapp 1:
   *AT91C_PIOA_PER = (1 << 14);
-  *AT91C_PIOA_PPUDR = (1 << 14);
+  *AT91C_PIOA_PPUER = (1 << 14);
   *AT91C_PIOA_ODR = (1 << 14);
 
   // Knapp 2:
   *AT91C_PIOD_PER = (1 << 0);
-  *AT91C_PIOD_PPUDR = (1 << 0);
+  *AT91C_PIOD_PPUER = (1 << 0);
   *AT91C_PIOD_ODR = (1 << 0);
 
   // Sätt på interrupts för port A
-  *AT91C_PIOA_IER = (1 << 14);
-  *AT91C_PIOA_IFER = (1 << 14);
-  NVIC_ClearPendingIRQ(PIOA_IRQn);
   NVIC_SetPriority(PIOA_IRQn, 2);
+  NVIC_ClearPendingIRQ(PIOA_IRQn);
   NVIC_EnableIRQ(PIOA_IRQn);
 }
 void turn_on_led(int index)
@@ -57,11 +55,24 @@ void turn_off_led(int index)
 }
 void flash_led(int index)
 {
+  int i;
+  int j;
   turn_on_led(index);
-  for (int i = 0; i < 8000; i++)
-    for (int j = 0; j < 100; j++)
-      ;
+
+  for (i = 0; i < 8000; i++)
+  {
+    for (j = 0; j < 100; j++)
+    {
+    }
+  }
+
   turn_off_led(index);
+  for (i = 0; i < 8000; i++)
+  {
+    for (j = 0; j < 100; j++)
+    {
+    }
+  }
 }
 void compute_primes(void)
 {
@@ -144,12 +155,10 @@ void task_4(void)
         flash_led(4);
       }
     }
-    turn_off_led(4);
-
-    exception r = wait(10);
-    (void)r;
 
     set_deadline(task_4_deadline + ticks());
+    exception r = wait(10);
+    (void)r;
   }
 }
 
@@ -175,10 +184,10 @@ void ButtonHandler(void)
 int main(void)
 {
 
+  SystemInit();
   SysTick_Config(83999);
-
-  init_kernel();
   setup();
+  init_kernel();
 
   create_task(task_1, task_1_deadline);
   create_task(task_2, task_2_deadline);
