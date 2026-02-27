@@ -16,7 +16,7 @@ void setup(void)
   input_events = calloc(1, sizeof(mailbox));
   if (!input_events)
     return;
-  *AT91C_PMC_PCER |= (1 << 14) | (1 << 11) | (1 << 13);
+  *AT91C_PMC_PCER1 |= (1 << 14) | (1 << 11) | (1 << 13);
 
   // FÖR LEDS
   *AT91C_PIOC_PER = (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4);
@@ -26,17 +26,19 @@ void setup(void)
   // FÖR KNAPPAR
   // Knapp 1:
   *AT91C_PIOA_PER = (1 << 14);
-  *AT91C_PIOA_PPUER = (1 << 14);
+  *AT91C_PIOA_PPUDR = (1 << 14);
   *AT91C_PIOA_ODR = (1 << 14);
 
   // Knapp 2:
   *AT91C_PIOD_PER = (1 << 0);
-  *AT91C_PIOD_PPUER = (1 << 0);
+  *AT91C_PIOD_PPUDR = (1 << 0);
   *AT91C_PIOD_ODR = (1 << 0);
 
   // Sätt på interrupts för port A
   *AT91C_PIOA_IER = (1 << 14);
+  *AT91C_PIOA_IFER = (1 << 14);
   NVIC_ClearPendingIRQ(PIOA_IRQn);
+  NVIC_SetPriority(PIOA_IRQn, 2);
   NVIC_EnableIRQ(PIOA_IRQn);
 }
 void turn_on_led(int index)
@@ -102,26 +104,14 @@ void task_2(void)
   while (1)
   {
     turn_on_led(2);
-
-    bool pressed = 1;
-    exception i_ex = receive_wait(input_events, &pressed);
-
-    if (i_ex == OK)
+    compute_primes();
+    int i;
+    for (i = 0; i < 3; i++)
     {
-      for (int i = 0; i < 3; i++)
-      {
-        flash_led(2);
-      }
-
-      send_wait(input_events, &pressed);
+      flash_led(2);
     }
-    else if (i_ex == DEADLINE_REACHED)
-    {
-      turn_off_led(2);
-    }
-
-    exception ex = wait(8000);
-    set_deadline(task_2_deadline + ticks());
+    exception r = wait(8000);
+    set_deadline(task_1_deadline + ticks());
   }
 }
 
@@ -130,29 +120,23 @@ void task_3(void)
 
   while (1)
   {
-    bool signal = 0;
-    exception msg_status = receive_wait(input_events, &signal);
-    if (msg_status == OK)
+    turn_on_led(3);
+    compute_primes();
+    int i;
+    for (i = 0; i < 3; i++)
     {
-      turn_on_led(3);
-      compute_primes();
-
-      for (int i = 0; i < 3; i++)
-      {
-        flash_led(3);
-      }
+      flash_led(3);
     }
+    exception r = wait(8000);
+    set_deadline(task_1_deadline + ticks());
   }
-
-  exception r = wait(8000);
-  set_deadline(task_3_deadline + ticks());
 }
 
 void task_4(void)
 {
   while (1)
   {
-    // kollar om button 1 trycks
+    // kollar om button 2 trycks
     if ((*AT91C_PIOD_PDSR & (1 << 0)) == 0)
     {
       while ((*AT91C_PIOD_PDSR & (1 << 0)) == 0)
@@ -191,10 +175,10 @@ void ButtonHandler(void)
 int main(void)
 {
 
-  setup();
   SysTick_Config(83999);
 
   init_kernel();
+  setup();
 
   create_task(task_1, task_1_deadline);
   create_task(task_2, task_2_deadline);
