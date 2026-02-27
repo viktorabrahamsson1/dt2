@@ -10,7 +10,6 @@ uint task_3_deadline = 10000;
 uint task_4_deadline = 10000;
 
 mailbox *input_events;
-bool pressed;
 
 void setup(void)
 {
@@ -58,12 +57,8 @@ void flash_led(int index)
 {
   turn_on_led(index);
   for (int i = 0; i < 8000; i++)
-  {
     for (int j = 0; j < 100; j++)
-    {
       ;
-    }
-  }
   turn_off_led(index);
 }
 void compute_primes(void)
@@ -108,21 +103,24 @@ void task_2(void)
   {
     turn_on_led(2);
 
-    if (receive_wait(input_events, &pressed) == OK)
+    bool pressed = 1;
+    exception i_ex = receive_wait(input_events, &pressed);
+
+    if (i_ex == OK)
     {
       for (int i = 0; i < 3; i++)
       {
         flash_led(2);
       }
-      pressed = 1;
-      exception i_ex = send_wait(input_events, &pressed);
+
+      send_wait(input_events, &pressed);
     }
-    else
+    else if (i_ex == DEADLINE_REACHED)
     {
       turn_off_led(2);
     }
 
-    exception r = wait(8000);
+    exception ex = wait(8000);
     set_deadline(task_2_deadline + ticks());
   }
 }
@@ -132,15 +130,18 @@ void task_3(void)
 
   while (1)
   {
-    if (receive_wait(input_events, &pressed) == OK)
+    bool signal = 0;
+    exception msg_status = receive_wait(input_events, &signal);
+    if (msg_status == OK)
     {
       turn_on_led(3);
       compute_primes();
+
+      for (int i = 0; i < 3; i++)
+      {
+        flash_led(3);
+      }
     }
-  }
-  for (int i = 0; i < 3; i++)
-  {
-    flash_led(3);
   }
 
   exception r = wait(8000);
@@ -171,22 +172,17 @@ void task_4(void)
 void PIOA_Handler(void)
 {
   uint32_t status = *AT91C_PIOA_ISR;
-  if ((*AT91C_PIOA_ISR & (1 << 14)) == (1 << 14))
+  if ((status & (1 << 14)))
   {
-    pressed = 0;
-    send_no_wait(input_events, &pressed);
-  }
-  else
-  {
-    pressed = 1;
+    ButtonHandler();
   }
 }
 
 void ButtonHandler(void)
 {
-  if ((*AT91C_PIOA_ISR & (1 << 14)) == (1 << 14))
+  if ((*AT91C_PIOA_PDSR & (1 << 14)) == 0)
   {
-    pressed = 0;
+    bool pressed = 0;
     send_no_wait(input_events, &pressed);
   }
 }
