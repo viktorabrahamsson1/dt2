@@ -96,9 +96,9 @@ void task_1(void)
     for (i = 0; i < 3; i++)
     {
       flash_led(1);
-      exception r = wait(8000);
-      set_deadline(task_1_deadline + ticks());
     }
+    exception r = wait(8000);
+    set_deadline(task_1_deadline + ticks());
   }
 }
 
