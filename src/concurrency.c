@@ -107,13 +107,21 @@ void task_2(void)
   while (1)
   {
     turn_on_led(2);
-    bool pressed = 1;
-    exception i_ex = receive_wait(input_events, &pressed);
-    int i;
-    for (i = 0; i < 3; i++)
+
+    if (pressed == 0)
     {
-      flash_led(2);
+      for (int i = 0; i < 3; i++)
+      {
+        flash_led(2);
+      }
+      pressed = 1;
+      exception i_ex = receive_wait(input_events, &pressed);
     }
+    else
+    {
+      turn_off_led(2);
+    }
+
     exception r = wait(8000);
     set_deadline(task_2_deadline + ticks());
   }
@@ -124,28 +132,19 @@ void task_3(void)
 
   while (1)
   {
-    if (search_for_msg(input_events) != NULL && pressed == 0)
+    if (send_wait(input_events, &pressed) == OK)
     {
       turn_on_led(3);
       compute_primes();
-      int i;
-      for (i = 0; i < 3; i++)
-      {
-        flash_led(3);
-      }
-      exception r = wait(8000);
-      set_deadline(task_3_deadline + ticks());
     }
-    else
+
+    for (int i = 0; i < 3; i++)
     {
-      int i;
-      for (i = 0; i < 3; i++)
-      {
-        flash_led(3);
-      }
-      exception r = wait(8000);
-      set_deadline(task_3_deadline + ticks());
+      flash_led(3);
     }
+
+    exception r = wait(8000);
+    set_deadline(task_3_deadline + ticks());
   }
 }
 
@@ -179,7 +178,7 @@ void ButtonHandler(void)
 {
   if ((*AT91C_PIOA_ISR & (1 << 14)) == (1 << 14))
   {
-    bool pressed = 0;
+    pressed = 0;
     send_no_wait(input_events, &pressed);
   }
 }
