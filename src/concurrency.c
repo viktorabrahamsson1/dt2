@@ -20,7 +20,7 @@ void setup(void)
   if (!input_events)
     return;
 
-  *AT91C_PMC_PCER1 |= (1 << 14) | (1 << 11) | (1 << 13);
+  *AT91C_PMC_PCER |= (1 << 14) | (1 << 11) | (1 << 13);
 
   // FÖR LEDS
   *AT91C_PIOC_PER = (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4);
@@ -39,6 +39,7 @@ void setup(void)
   *AT91C_PIOD_ODR = (1 << 0);
 
   // Sätt på interrupts för port A
+  *AT91C_PIOA_IER = (1 << 14);
   NVIC_SetPriority(PIOA_IRQn, 3);
   NVIC_ClearPendingIRQ(PIOA_IRQn);
   NVIC_EnableIRQ(PIOA_IRQn);
@@ -139,7 +140,7 @@ void task_2(void)
     }
 
     exception r = wait(8000);
-    set_deadline(task_1_deadline + ticks());
+    set_deadline(task_2_deadline + ticks());
   }
 }
 
@@ -161,10 +162,10 @@ void task_3(void)
     int i;
     for (i = 0; i < 3; i++)
     {
-      flash_led(3);
+      flash_led(2);
     }
     exception r = wait(8000);
-    set_deadline(task_1_deadline + ticks());
+    set_deadline(task_3_deadline + ticks());
   }
 }
 
