@@ -125,10 +125,10 @@ void task_2(void)
   {
     turn_on_led(2);
 
-    // bool pressed = 1;
-    // exception i_ex = receive_wait(input_events, &pressed);
+    bool pressed = 1;
+    exception i_ex = receive_wait(input_events, &pressed);
 
-    if (b1_pressed == 1)
+    if (i_ex == OK && pressed == 0)
     {
       b1_pressed = 0;
       int i;
@@ -194,8 +194,8 @@ void PIOA_Handler(void)
   uint32_t status = *AT91C_PIOA_ISR;
   if ((status & (1 << 14)) && (*AT91C_PIOA_PDSR & (1 << 14)) == 0)
   {
-    b1_pressed = 1;
-    // ButtonHandler();
+    // b1_pressed = 1;
+    ButtonHandler();
   }
 }
 
