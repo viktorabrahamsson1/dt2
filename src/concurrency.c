@@ -44,8 +44,6 @@ void setup(void)
 
   // Sätt på interrupts för port A
   *AT91C_PIOA_IER = (1 << 14);
-  NVIC_SetPriority(SysTick_IRQn, 1);
-  NVIC_SetPriority(PIOA_IRQn, 15);
   NVIC_ClearPendingIRQ(PIOA_IRQn);
   NVIC_EnableIRQ(PIOA_IRQn);
 }
@@ -126,20 +124,17 @@ void task_2(void)
   {
     turn_on_led(2);
 
-    bool pressed = 1;
-    exception i_ex = receive_wait(input_events, &pressed);
-
-    if (i_ex == OK && pressed == 0)
+    if (b1_pressed == 1)
     {
       b1_pressed = 0;
+      bool msg = 1;
+      send_no_wait(task_3_events, &msg);
       int i;
       for (i = 0; i < 3; i++)
       {
         flash_led(2);
       }
-      bool msg = 1;
-      send_no_wait(task_3_events, &msg);
-    }
+        }
     else
     {
       turn_off_led(2);
@@ -193,20 +188,17 @@ void task_4(void)
 void PIOA_Handler(void)
 {
   uint32_t status = *AT91C_PIOA_ISR;
-  if ((status & (1 << 14)) && (*AT91C_PIOA_PDSR & (1 << 14)) == 0)
+  if (status & (1 << 14))
   {
-    // b1_pressed = 1;
-    ButtonHandler();
+    b1_pressed = 1;
+    // ButtonHandler();
   }
 }
 
 void ButtonHandler(void)
 {
-  if ((*AT91C_PIOA_PDSR & (1 << 14)) == 0)
-  {
-    bool pressed = 0;
-    send_no_wait(input_events, &pressed);
-  }
+  bool pressed = 0;
+  send_no_wait(input_events, &pressed);
 }
 
 // MAIN
