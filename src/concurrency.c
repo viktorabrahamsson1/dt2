@@ -14,10 +14,10 @@ mailbox *task_3_events;
 
 void setup(void)
 {
-  input_events = create_mailbox(10, sizeof(int));
+  input_events = create_mailbox(10, sizeof(bool));
   task_3_events = create_mailbox(10, sizeof(int));
 
-  if (!input_events)
+  if (!input_events || !task_3_events)
     return;
 
   *AT91C_PMC_PCER |= (1 << 14) | (1 << 11) | (1 << 13);
@@ -178,7 +178,7 @@ void task_4(void)
     {
       flash_led(4);
     }
-
+    turn_off_led(4);
     set_deadline(task_4_deadline + ticks());
     exception r = wait(10);
     (void)r;
