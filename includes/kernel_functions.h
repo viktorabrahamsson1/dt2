@@ -8,7 +8,7 @@
 #include <limits.h> /* for using the constant UINT_MAX      */
 
 #define CONTEXT_SIZE 8 /*  for the 8 registers: r4 to r11   */
-#define STACK_SIZE 100 /*  about enough space for the stack */
+#define STACK_SIZE 512 /*  about enough space for the stack */
 
 #define TRUE 1
 #define FALSE !TRUE

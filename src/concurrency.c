@@ -17,7 +17,7 @@ volatile uint b1_pressed = 0;
 void setup(void)
 {
   input_events = create_mailbox(100, sizeof(bool));
-  task_3_events = create_mailbox(100, sizeof(int));
+  task_3_events = create_mailbox(100, sizeof(bool));
 
   if (!input_events || !task_3_events)
     return;
@@ -44,7 +44,8 @@ void setup(void)
 
   // Sätt på interrupts för port A
   *AT91C_PIOA_IER = (1 << 14);
-  // NVIC_SetPriority(PIOA_IRQn, 3);
+  NVIC_SetPriority(SysTick_IRQn, 1);
+  NVIC_SetPriority(PIOA_IRQn, 15);
   NVIC_ClearPendingIRQ(PIOA_IRQn);
   NVIC_EnableIRQ(PIOA_IRQn);
 }
@@ -136,7 +137,7 @@ void task_2(void)
       {
         flash_led(2);
       }
-      int msg = 1;
+      bool msg = 1;
       send_no_wait(task_3_events, &msg);
     }
     else
@@ -153,7 +154,7 @@ void task_3(void)
 
   while (1)
   {
-    int msg = 0;
+    bool msg = 0;
 
     exception m_ex = receive_wait(task_3_events, &msg);
 
