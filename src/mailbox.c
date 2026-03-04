@@ -379,22 +379,50 @@ uint deadline(void)
   return ReadyList->pHead->pTask->Deadline;
 }
 
+// void set_deadline(uint deadline)
+// {
+//   isr_off();
+
+//   ReadyList->pHead->pTask->Deadline = deadline;
+//   // todo  KANSKE fel
+//   PreviousTask = ReadyList->pHead->pTask;
+
+//   // Extrahera och sätt in igen för att reschedula
+//   listobj *current = extract(ReadyList, ReadyList->pHead);
+//   insert_sorted(ReadyList, current);
+
+//   NextTask = ReadyList->pHead->pTask;
+
+//   isr_on();
+//   SwitchContext();
+// }
+
 void set_deadline(uint deadline)
 {
   isr_off();
 
-  ReadyList->pHead->pTask->Deadline = deadline;
+  listobj *current_task = ReadyList->pHead; // Spara referens FÖRST
 
-  PreviousTask = ReadyList->pHead->pTask;
+  // Sätt ny deadline
+  current_task->pTask->Deadline = deadline;
 
-  // Extrahera och sätt in igen för att reschedula
-  listobj *current = extract(ReadyList, ReadyList->pHead);
-  insert_sorted(ReadyList, current);
+  // Spara current task som PreviousTask (den som lämnar CPU)
+  PreviousTask = current_task->pTask;
 
+  // Extrahera och sätt in igen för att reschedula med ny deadline
+  extract(ReadyList, current_task);
+  insert_sorted(ReadyList, current_task);
+
+  // Nästa task att köra (kan vara samma eller annan)
   NextTask = ReadyList->pHead->pTask;
 
   isr_on();
-  SwitchContext();
+
+  // Bara context switch om en ANNAN task blev högst prioriterad
+  if (PreviousTask != NextTask)
+  {
+    SwitchContext();
+  }
 }
 
 void TimerInt(void)
