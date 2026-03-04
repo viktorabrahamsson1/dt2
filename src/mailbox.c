@@ -235,7 +235,7 @@ exception send_no_wait(mailbox *mBox, void *pData)
     if (current->Status == RECEIVER)
     {
       memcpy(current->pData, pData, mBox->nDataSize);
-      current->Status = OK;
+      // current->Status = OK;
 
       PreviousTask = ReadyList->pHead->pTask;
 
@@ -321,7 +321,7 @@ int receive_no_wait(mailbox *mBox, void *pData)
         mBox->nMessages--;
         free(current);
 
-        NextTask = ReadyList->pHead->pTask;
+        // NextTask = ReadyList->pHead->pTask;
         isr_on();
         SwitchContext();
       }
@@ -411,7 +411,7 @@ void TimerInt(void)
       extract(TimerList, current);
       insert_sorted(ReadyList, current);
       NextTask = ReadyList->pHead->pTask;
-      free(current);
+      // free(current); POTENTIELL FIX
     }
     current = next;
   }
