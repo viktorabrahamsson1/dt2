@@ -10,10 +10,12 @@ uint task_3_deadline = 14000;
 uint task_4_deadline = 16000;
 
 mailbox *input_events;
+mailbox *task_3_events;
 
 void setup(void)
 {
   input_events = create_mailbox(10, sizeof(int));
+  task_3_events = create_mailbox(10, sizeof(int));
 
   if (!input_events)
     return;
@@ -129,7 +131,7 @@ void task_2(void)
         flash_led(2);
       }
       int msg = 1;
-      send_no_wait(input_events, &msg);
+      send_no_wait(task_3_events, &msg);
     }
     else
     {
@@ -148,7 +150,7 @@ void task_3(void)
   {
     int msg = 0;
 
-    exception m_ex = receive_wait(input_events, &msg);
+    exception m_ex = receive_wait(task_3_events, &msg);
 
     if (m_ex == OK && msg == 1)
     {
