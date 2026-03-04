@@ -32,6 +32,8 @@ void setup(void)
   *AT91C_PIOA_PER = (1 << 14);
   *AT91C_PIOA_PPUER = (1 << 14);
   *AT91C_PIOA_ODR = (1 << 14);
+  // FILTER
+  *AT91C_PIOA_IFER = (1 << 14);
 
   // Knapp 2:
   *AT91C_PIOD_PER = (1 << 0);
