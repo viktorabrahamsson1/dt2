@@ -12,10 +12,12 @@ uint task_4_deadline = 16000;
 mailbox *input_events;
 mailbox *task_3_events;
 
+volatile uint b1_pressed = 0;
+
 void setup(void)
 {
-  input_events = create_mailbox(10, sizeof(bool));
-  task_3_events = create_mailbox(10, sizeof(int));
+  input_events = create_mailbox(100, sizeof(bool));
+  task_3_events = create_mailbox(100, sizeof(int));
 
   if (!input_events || !task_3_events)
     return;
@@ -123,11 +125,12 @@ void task_2(void)
   {
     turn_on_led(2);
 
-    bool pressed = 1;
-    exception i_ex = receive_wait(input_events, &pressed);
+    // bool pressed = 1;
+    // exception i_ex = receive_wait(input_events, &pressed);
 
-    if (i_ex == OK && pressed == 0)
+    if (b1_pressed == 1)
     {
+      b1_pressed = 0;
       int i;
       for (i = 0; i < 3; i++)
       {
@@ -189,9 +192,10 @@ void task_4(void)
 void PIOA_Handler(void)
 {
   uint32_t status = *AT91C_PIOA_ISR;
-  if ((status & (1 << 14)))
+  if ((status & (1 << 14)) && (*AT91C_PIOA_PDSR & (1 << 14)) == 0)
   {
-    ButtonHandler();
+    b1_pressed = 1;
+    // ButtonHandler();
   }
 }
 
