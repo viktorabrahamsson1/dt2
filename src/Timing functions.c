@@ -3,7 +3,6 @@
 
 #include "../includes/kernel_functions.h"
 #include "../includes/linked_list.h"
-#include "../includes/globals.h"
 
 unsigned int g0 = 0, g1 = 0, g2 = 0, g3 = 1, g5 = 0, g6 = 0;
 /* gate flags for various stages of unit test */

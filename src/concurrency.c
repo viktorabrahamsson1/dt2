@@ -5,17 +5,19 @@
 #include "../includes/kernel_functions.h"
 
 uint task_1_deadline = 10000;
-uint task_2_deadline = 10000;
-uint task_3_deadline = 10000;
-uint task_4_deadline = 10000;
+uint task_2_deadline = 12000;
+uint task_3_deadline = 14000;
+uint task_4_deadline = 16000;
 
 mailbox *input_events;
 
 void setup(void)
 {
-  input_events = calloc(1, sizeof(mailbox));
+  input_events = create_mailbox(10, sizeof(int));
+
   if (!input_events)
     return;
+
   *AT91C_PMC_PCER1 |= (1 << 14) | (1 << 11) | (1 << 13);
 
   // FÖR LEDS
@@ -35,7 +37,7 @@ void setup(void)
   *AT91C_PIOD_ODR = (1 << 0);
 
   // Sätt på interrupts för port A
-  NVIC_SetPriority(PIOA_IRQn, 2);
+  NVIC_SetPriority(PIOA_IRQn, 3);
   NVIC_ClearPendingIRQ(PIOA_IRQn);
   NVIC_EnableIRQ(PIOA_IRQn);
 }
@@ -115,12 +117,25 @@ void task_2(void)
   while (1)
   {
     turn_on_led(2);
-    compute_primes();
-    int i;
-    for (i = 0; i < 3; i++)
+
+    bool pressed = 1;
+    exception i_ex = receive_wait(input_events, &pressed);
+
+    if (i_ex == OK && pressed == 0)
     {
-      flash_led(2);
+      int i;
+      for (i = 0; i < 3; i++)
+      {
+        flash_led(2);
+      }
+      int msg = 1;
+      send_no_wait(input_events, &msg);
     }
+    else
+    {
+      turn_off_led(2);
+    }
+
     exception r = wait(8000);
     set_deadline(task_1_deadline + ticks());
   }
@@ -131,8 +146,16 @@ void task_3(void)
 
   while (1)
   {
-    turn_on_led(3);
-    compute_primes();
+    int msg = 0;
+
+    exception m_ex = receive_wait(input_events, &msg);
+
+    if (m_ex == OK && msg == 1)
+    {
+      turn_on_led(3);
+      compute_primes();
+    }
+
     int i;
     for (i = 0; i < 3; i++)
     {
@@ -148,12 +171,9 @@ void task_4(void)
   while (1)
   {
     // kollar om button 2 trycks
-    if ((*AT91C_PIOD_PDSR & (1 << 0)) == 0)
+    while ((*AT91C_PIOD_PDSR & (1 << 0)) == 0)
     {
-      while ((*AT91C_PIOD_PDSR & (1 << 0)) == 0)
-      {
-        flash_led(4);
-      }
+      flash_led(4);
     }
 
     set_deadline(task_4_deadline + ticks());
@@ -185,9 +205,9 @@ int main(void)
 {
 
   SystemInit();
-  SysTick_Config(83999);
-  setup();
   init_kernel();
+  setup();
+  SysTick_Config(83999);
 
   create_task(task_1, task_1_deadline);
   create_task(task_2, task_2_deadline);
