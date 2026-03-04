@@ -110,8 +110,8 @@ void task_1(void)
     {
       flash_led(1);
     }
-    exception r = wait(8000);
     set_deadline(task_1_deadline + ticks());
+    exception r = wait(8000);
   }
 }
 
@@ -138,9 +138,8 @@ void task_2(void)
     {
       turn_off_led(2);
     }
-
-    exception r = wait(8000);
     set_deadline(task_2_deadline + ticks());
+    exception r = wait(8000);
   }
 }
 
@@ -164,8 +163,8 @@ void task_3(void)
     {
       flash_led(2);
     }
-    exception r = wait(8000);
     set_deadline(task_3_deadline + ticks());
+    exception r = wait(8000);
   }
 }
 
