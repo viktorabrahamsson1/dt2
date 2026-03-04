@@ -5,9 +5,9 @@
 #include "../includes/kernel_functions.h"
 
 uint task_1_deadline = 10000;
-uint task_2_deadline = 12000;
-uint task_3_deadline = 14000;
-uint task_4_deadline = 16000;
+uint task_2_deadline = 11000;
+uint task_3_deadline = 12000;
+uint task_4_deadline = 100000;
 
 mailbox *input_events;
 mailbox *task_3_events;
@@ -44,7 +44,7 @@ void setup(void)
 
   // Sätt på interrupts för port A
   *AT91C_PIOA_IER = (1 << 14);
-  NVIC_SetPriority(PIOA_IRQn, 3);
+  // NVIC_SetPriority(PIOA_IRQn, 3);
   NVIC_ClearPendingIRQ(PIOA_IRQn);
   NVIC_EnableIRQ(PIOA_IRQn);
 }
