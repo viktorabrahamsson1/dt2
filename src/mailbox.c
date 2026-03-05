@@ -425,6 +425,7 @@ void set_deadline(uint deadline)
   }
 }
 
+// TODO KAN VARA KNAS
 void TimerInt(void)
 {
   Ticks++;
@@ -439,7 +440,6 @@ void TimerInt(void)
       extract(TimerList, current);
       insert_sorted(ReadyList, current);
       NextTask = ReadyList->pHead->pTask;
-      // free(current); POTENTIELL FIX
     }
     current = next;
   }
@@ -451,7 +451,7 @@ void TimerInt(void)
     listobj *next = current_wait->pNext;
     if (current_wait->pTask->Deadline <= Ticks)
     {
-      // Bara flytta tasken - den rensar själv sitt meddelande
+
       extract(WaitingList, current_wait);
       insert_sorted(ReadyList, current_wait);
       NextTask = ReadyList->pHead->pTask;

@@ -63,13 +63,11 @@ void turn_off_led(int index)
 }
 void flash_led(int index)
 {
-  int i;
-  int j;
   turn_on_led(index);
 
-  for (i = 0; i < 8000; i++)
+  for (int i = 0; i < 8000; i++)
   {
-    for (j = 0; j < 100; j++)
+    for (int j = 0; j < 100; j++)
     {
     }
   }
@@ -102,8 +100,7 @@ void task_1(void)
   {
     turn_on_led(1);
     compute_primes();
-    int i;
-    for (i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++)
     {
       flash_led(1);
     }
@@ -124,8 +121,7 @@ void task_2(void)
     if (i_ex == OK && pressed == 0)
     {
       b1_pressed = 0;
-      int i;
-      for (i = 0; i < 3; i++)
+      for (int i = 0; i < 3; i++)
       {
         flash_led(2);
       }
@@ -156,11 +152,11 @@ void task_3(void)
       compute_primes();
     }
 
-    int i;
-    for (i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++)
     {
       flash_led(3);
     }
+
     set_deadline(task_3_deadline + ticks());
     exception r = wait(8000);
   }
