@@ -73,6 +73,13 @@ void flash_led(int index)
   }
 
   turn_off_led(index);
+
+  for (int i = 0; i < 8000; i++)
+  {
+    for (int j = 0; j < 100; j++)
+    {
+    }
+  }
 }
 void compute_primes(void)
 {
