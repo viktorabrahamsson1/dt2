@@ -185,7 +185,7 @@ void task_4(void)
 void PIOA_Handler(void)
 {
   uint32_t status = *AT91C_PIOA_ISR;
-  if (status & (1 << 14))
+  if (status & (1 << 14) && !(*AT91C_PIOA_PDSR & (1 << 14)))
   {
     b1_pressed = 1;
   }
