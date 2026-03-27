@@ -42,18 +42,9 @@ exception create_task(void (*task_body)(), uint deadline)
   new_tcb->SPSR = 0x21000000;
   new_tcb->Deadline = deadline;
 
-  // new_tcb->StackSeg[STACK_SIZE - 2] = 0x21000000;
-  // new_tcb->StackSeg[STACK_SIZE - 3] = (unsigned int)task_body;
-  // new_tcb->SP = &(new_tcb->StackSeg[STACK_SIZE - 9]);
-
-  new_tcb->StackSeg[STACK_SIZE - 1] = 0x21000000;                    // xPSR  (T-bit satt)
-  new_tcb->StackSeg[STACK_SIZE - 2] = (unsigned int)task_body | 0x1; // PC (Thumb-bit!)
-  new_tcb->StackSeg[STACK_SIZE - 3] = 0xFFFFFFFD;                    // LR (EXC_RETURN, PSP thread)
-  new_tcb->StackSeg[STACK_SIZE - 4] = 0;                             // R12
-  new_tcb->StackSeg[STACK_SIZE - 5] = 0;                             // R3
-  new_tcb->StackSeg[STACK_SIZE - 6] = 0;                             // R2
-  new_tcb->StackSeg[STACK_SIZE - 7] = 0;                             // R1
-  new_tcb->StackSeg[STACK_SIZE - 8] = 0;
+  new_tcb->StackSeg[STACK_SIZE - 2] = 0x21000000;
+  new_tcb->StackSeg[STACK_SIZE - 3] = (unsigned int)task_body;
+  new_tcb->SP = &(new_tcb->StackSeg[STACK_SIZE - 9]);
 
   // skapa ett list objekt
   listobj *pNewNode = create_listobj(new_tcb);
