@@ -218,9 +218,115 @@ int insert_sorted_test(void)
 
   return PASS;
 }
+//
+// MAILBOX UNIT TESTS
+//
+
+int create_mailbox_zero_test()
+{
+
+  mailbox *mBox = create_mailbox(0, 0);
+  if (mBox != NULL)
+    return FAIL;
+
+  return PASS;
+}
+
+int create_mailbox_test()
+{
+  uint nMessages = 3;
+  uint nDataSize = 4;
+
+  mailbox *mBox = create_mailbox(nMessages, nDataSize);
+  if (mBox == NULL)
+    return FAIL;
+
+  if (mBox->nMaxMessages != nMessages)
+    return FAIL;
+  if (mBox->nDataSize != nDataSize)
+    return FAIL;
+  if (mBox->pHead != NULL)
+    return FAIL;
+  if (mBox->pTail != NULL)
+    return FAIL;
+
+  return PASS;
+}
+
+int remove_mailbox_test(void)
+{
+  mailbox *mBox = create_mailbox(2, 4);
+  exception ret = remove_mailbox(mBox);
+
+  if (ret == FAIL)
+    return FAIL;
+  if (ret == NOT_EMPTY)
+    return FAIL;
+
+  return PASS;
+}
+
+int pop_head_test(void)
+{
+  mailbox *mBox = create_mailbox(3, 4);
+
+  msg *m1 = calloc(1, sizeof(msg));
+  msg *m2 = calloc(1, sizeof(msg));
+
+  m1->pNext = m2;
+  m2->pPrevious = m1;
+
+  mBox->pHead = m1;
+  mBox->pTail = m2;
+
+  msg *ret = pop_head(mBox);
+
+  if (ret != m1)
+    return FAIL;
+  if (mBox->pHead != m2)
+    return FAIL;
+  if (mBox->pTail != m2)
+    return FAIL;
+  if (m2->pPrevious != NULL)
+    return FAIL;
+
+  return PASS;
+}
+
+int unlink_msg_test(void)
+{
+  mailbox *mBox = create_mailbox(3, 4);
+
+  msg *m1 = calloc(1, sizeof(msg));
+  msg *m2 = calloc(1, sizeof(msg));
+  msg *m3 = calloc(1, sizeof(msg));
+
+  m1->pNext = m2;
+  m2->pPrevious = m1;
+  m2->pNext = m3;
+  m3->pPrevious = m2;
+
+  mBox->pHead = m1;
+  mBox->pTail = m3;
+
+  unlink_msg(mBox, m2);
+
+  if (mBox->pHead != m1)
+    return FAIL;
+  if (mBox->pTail != m3)
+    return FAIL;
+  if (m1->pNext != m3)
+    return FAIL;
+  if (m3->pPrevious != m1)
+    return FAIL;
+
+  return PASS;
+}
 
 int main(void)
 {
+
+  // LINKED LIST
   int g1 = init_list_test();
   if (g1 == FAIL)
   {
@@ -277,6 +383,53 @@ int main(void)
 
   int g7 = insert_sorted_test();
   if (g7 == FAIL)
+  {
+    while (1)
+    {
+      // No use in going further
+    }
+  }
+
+  // MAILBOX
+
+  int g8 = create_mailbox_zero_test();
+  if (g8 == FAIL)
+  {
+    while (1)
+    {
+      // No use in going further
+    }
+  }
+
+  int g8 = create_mailbox_test();
+  if (g8 == FAIL)
+  {
+    while (1)
+    {
+      // No use in going further
+    }
+  }
+
+  int g9 = remove_mailbox_test();
+  if (g9 == FAIL)
+  {
+    while (1)
+    {
+      // No use in going further
+    }
+  }
+
+  int g10 = pop_head_test();
+  if (g10 == FAIL)
+  {
+    while (1)
+    {
+      // No use in going further
+    }
+  }
+
+  int g11 = unlink_msg_test();
+  if (g11 == FAIL)
   {
     while (1)
     {
