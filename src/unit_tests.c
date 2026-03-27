@@ -401,16 +401,7 @@ int main(void)
     }
   }
 
-  int g8 = create_mailbox_test();
-  if (g8 == FAIL)
-  {
-    while (1)
-    {
-      // No use in going further
-    }
-  }
-
-  int g9 = remove_mailbox_test();
+  int g9 = create_mailbox_test();
   if (g9 == FAIL)
   {
     while (1)
@@ -419,7 +410,7 @@ int main(void)
     }
   }
 
-  int g10 = pop_head_test();
+  int g10 = remove_mailbox_test();
   if (g10 == FAIL)
   {
     while (1)
@@ -428,8 +419,17 @@ int main(void)
     }
   }
 
-  int g11 = unlink_msg_test();
+  int g11 = pop_head_test();
   if (g11 == FAIL)
+  {
+    while (1)
+    {
+      // No use in going further
+    }
+  }
+
+  int g12 = unlink_msg_test();
+  if (g12 == FAIL)
   {
     while (1)
     {
